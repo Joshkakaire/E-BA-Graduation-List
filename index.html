@@ -20,26 +20,27 @@
     font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
     color:var(--ink); background:var(--page);
   }
-  .shell{display:flex; min-height:100vh;}
+  .shell{display:flex; flex-direction:column; min-height:100vh;}
 
   aside.sidebar{
-    width:var(--sidebar-w); flex-shrink:0; background:var(--blue-dark); color:#fff;
-    display:flex; flex-direction:column; padding:18px 12px;
+    width:100%; background:var(--blue-dark); color:#fff;
+    display:flex; flex-direction:column; align-items:flex-start;
+    gap:6px; padding:10px 24px; position:sticky; top:0; z-index:40;
   }
-  .brand{display:flex; align-items:center; gap:9px; padding:4px 8px 22px;}
+  .brand{display:flex; align-items:center; gap:9px;}
   .brand .mark{width:30px; height:30px; border-radius:7px; background:var(--yellow); color:var(--blue-dark);
-    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;}
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;}
   .brand .txt{font-size:14px; font-weight:600; line-height:1.25;}
   .brand .txt small{display:block; font-size:10.5px; color:#9FC3CE; font-weight:400;}
-  nav.navlist{display:flex; flex-direction:column; gap:2px;}
+  nav.navlist{display:flex; flex-direction:row; gap:2px;}
   nav.navlist button{
-    display:flex; align-items:center; gap:10px; text-align:left; font-family:inherit; font-size:13.5px;
-    padding:10px 10px; border-radius:8px; border:none; background:none; color:#C7D8DD; cursor:pointer;
+    display:flex; align-items:center; gap:8px; text-align:left; font-family:inherit; font-size:13px;
+    padding:9px 12px; border-radius:8px; border:none; background:none; color:#C7D8DD; cursor:pointer; white-space:nowrap;
   }
-  nav.navlist button i{font-size:17px; width:18px;}
+  nav.navlist button i{font-size:16px;}
   nav.navlist button:hover{background:#2A4A57;}
   nav.navlist button.active{background:var(--blue); color:#fff;}
-  .sidebarFoot{margin-top:auto; padding:10px 8px; font-size:11px; color:#7FA3AD; line-height:1.5;}
+  .sidebarFoot{display:none;}
 
   main.content{flex:1; min-width:0; padding:22px 28px 40px;}
   header.pageHead{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px;}
@@ -117,13 +118,12 @@
   #printSheet th,#printSheet td{border:1px solid #999; padding:6px 8px; text-align:left;}
 
   @media (max-width:760px){
-    .shell{flex-direction:row;}
-    aside.sidebar{width:60px; padding:14px 4px;}
-    .brand{justify-content:center; padding:4px 0 18px;}
+    aside.sidebar{padding:8px 12px; gap:6px;}
     .brand .txt{display:none;}
-    nav.navlist button{font-size:0; padding:12px 4px; justify-content:center;}
-    nav.navlist button i{font-size:20px;}
-    .sidebarFoot{display:none;}
+    nav.navlist button{
+      flex-direction:column; gap:3px; font-size:10.5px; padding:8px 8px; text-align:center;
+    }
+    nav.navlist button i{font-size:18px;}
 
     main.content{padding:16px 14px 40px;}
     header.pageHead{flex-direction:column; align-items:stretch; gap:10px;}
