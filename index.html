@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Site performance dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+  :root{
+    --blue:#4D889D; --blue-dark:#1F3743; --yellow:#F4B14D; --red:#A03434; --green:#4F9262; --grey:#7D7B7C;
+    --blue-tint:#E9F1F3; --red-tint:#F6E8E6; --green-tint:#E9F2EC; --yellow-tint:#FDF1DF;
+    --border:#E4E2DC; --ink:#22282B; --page:#F4F3EF; --sidebar-w:216px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'IBM Plex Sans',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--ink); background:var(--page);
+  }
+  .shell{display:flex; min-height:100vh;}
+
+  aside.sidebar{
+    width:var(--sidebar-w); flex-shrink:0; background:var(--blue-dark); color:#fff;
+    display:flex; flex-direction:column; padding:18px 12px;
+  }
+  .brand{display:flex; align-items:center; gap:9px; padding:4px 8px 22px;}
+  .brand .mark{width:30px; height:30px; border-radius:7px; background:var(--yellow); color:var(--blue-dark);
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;}
+  .brand .txt{font-size:14px; font-weight:600; line-height:1.25;}
+  .brand .txt small{display:block; font-size:10.5px; color:#9FC3CE; font-weight:400;}
+  nav.navlist{display:flex; flex-direction:column; gap:2px;}
+  nav.navlist button{
+    display:flex; align-items:center; gap:10px; text-align:left; font-family:inherit; font-size:13.5px;
+    padding:10px 10px; border-radius:8px; border:none; background:none; color:#C7D8DD; cursor:pointer;
+  }
+  nav.navlist button i{font-size:17px; width:18px;}
+  nav.navlist button:hover{background:#2A4A57;}
+  nav.navlist button.active{background:var(--blue); color:#fff;}
+  .sidebarFoot{margin-top:auto; padding:10px 8px; font-size:11px; color:#7FA3AD; line-height:1.5;}
+
+  main.content{flex:1; min-width:0; padding:22px 28px 40px;}
+  header.pageHead{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px;}
+  header.pageHead h1{font-size:19px; font-weight:600; margin:0 0 3px; color:var(--blue-dark);}
+  header.pageHead p{font-size:12.5px; color:var(--grey); margin:0;}
+  .headControls{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .headControls select, .headControls input[type="text"]{
+    font-family:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--border); border-radius:7px; background:#fff;
+  }
+
+  .statusBanner{display:flex; align-items:center; gap:8px; font-size:12.5px; padding:9px 12px; border-radius:8px; margin-bottom:16px;}
+  .statusBanner.loading{background:var(--blue-tint); color:var(--blue-dark);}
+  .statusBanner.error{background:var(--red-tint); color:#7A2626;}
+  .statusBanner.hidden{display:none;}
+
+  .kpiGrid{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px;}
+  .kpi{background:#fff; border:1px solid var(--border); border-left:4px solid var(--blue); border-radius:10px; padding:14px 16px;}
+  .kpi .num{font-size:24px; font-weight:700; color:var(--blue-dark); line-height:1.1;}
+  .kpi .lbl{font-size:11.5px; color:var(--grey); margin-top:4px;}
+  .kpi.green{border-left-color:var(--green);} .kpi.green .num{color:var(--green);}
+  .kpi.yellow{border-left-color:var(--yellow);}
+  .kpi.red{border-left-color:var(--red);} .kpi.red .num{color:var(--red);}
+
+  .grid2{display:grid; grid-template-columns:1.15fr 1fr; gap:14px; margin-bottom:18px;}
+  .panel{background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px;}
+  .panel h3{font-size:13px; font-weight:600; margin:0 0 12px; color:var(--blue-dark);}
+  .panel h3 .sub{display:block; font-size:11px; font-weight:400; color:var(--grey); margin-top:2px;}
+  .barRow{display:flex; align-items:center; gap:8px; margin-bottom:9px; font-size:12px;}
+  .barRow .name{width:150px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .barTrack{flex:1; background:#F1F0EB; border-radius:4px; height:14px;}
+  .barFill{height:100%; border-radius:4px;}
+  .barRow .count{width:30px; text-align:right; font-weight:600; color:var(--blue-dark); flex-shrink:0; font-family:'IBM Plex Mono',monospace;}
+  .statusRow{display:flex; align-items:center; gap:9px; margin-bottom:9px; font-size:12.5px;}
+  .dot{width:9px; height:9px; border-radius:2px; flex-shrink:0;}
+  .statusRow .name{flex:1;}
+  .statusRow .pct{font-weight:600; color:var(--blue-dark); width:66px; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:11.5px;}
+  .empty{padding:26px 10px; text-align:center; color:var(--grey); font-size:12.5px;}
+
+  table{width:100%; border-collapse:collapse; font-size:12.6px;}
+  thead th{
+    text-align:left; padding:9px 10px; font-weight:600; font-size:11.5px; color:var(--grey);
+    border-bottom:1px solid var(--border); cursor:pointer; white-space:nowrap; user-select:none;
+  }
+  thead th .arrow{opacity:.55; font-size:10px; margin-left:3px;}
+  tbody td{padding:9px 10px; border-bottom:1px solid #F1F0EB; white-space:nowrap;}
+  tbody tr{cursor:pointer;}
+  tbody tr:hover{background:#F8F9F5;}
+  .riskDot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;}
+  .tableWrap{background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden;}
+  .tableScroll{overflow-x:auto;}
+  .tableFoot{display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-top:1px solid var(--border); font-size:12px; color:var(--grey);}
+  .btn{font-family:inherit; font-size:12.5px; font-weight:500; padding:7px 12px; border-radius:7px; border:1px solid var(--border); background:#fff; cursor:pointer;}
+  .btn:hover{background:#F2F1EE;}
+  .btn.primary{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .btn.primary:hover{background:#3f7488;}
+  .pill{font-size:10.5px; font-weight:600; padding:3px 8px; border-radius:20px; white-space:nowrap;}
+  .pill.green{background:var(--green-tint); color:#2E5A3D;}
+  .pill.red{background:var(--red-tint); color:#7A2626;}
+  .pill.grey{background:#EFEEEA; color:var(--grey);}
+  td.chk{width:30px; text-align:center;}
+
+  .filterRow{display:flex; gap:8px; flex-wrap:wrap; padding:14px 16px; border-bottom:1px solid var(--border);}
+  .filterRow select{font-family:inherit; font-size:12.5px; padding:7px 9px; border:1px solid var(--border); border-radius:7px; background:#fff;}
+  .filterRow .resetLink{font-size:12.5px; color:var(--blue); text-decoration:underline; cursor:pointer; align-self:center;}
+
+  .view{display:none;} .view.active{display:block;}
+
+  #printSheet{display:none;}
+  @media print{
+    aside.sidebar, header.pageHead, .statusBanner, .filterRow, .tableFoot{display:none !important;}
+    body{background:#fff;} .shell{display:block;}
+    #printSheet{display:block !important;}
+  }
+  #printSheet table{width:100%; border-collapse:collapse; font-size:13px;}
+  #printSheet th,#printSheet td{border:1px solid #999; padding:6px 8px; text-align:left;}
+
+  @media (max-width:760px){
+    .shell{flex-direction:column;}
+    aside.sidebar{
+      position:fixed; left:0; right:0; bottom:0; z-index:50; width:100%; flex-direction:row;
+      align-items:stretch; padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+      border-top:1px solid #2A4A57; height:auto;
+    }
+    .brand{display:none;}
+    nav.navlist{flex-direction:row; flex:1; width:100%;}
+    nav.navlist button{
+      flex:1; flex-direction:column; gap:3px; font-size:10.5px; padding:8px 2px; text-align:center;
+      align-items:center; justify-content:center; border-radius:8px;
+    }
+    nav.navlist button i{font-size:20px; width:auto;}
+    .sidebarFoot{display:none;}
+
+    main.content{padding:16px 14px calc(78px + env(safe-area-inset-bottom));}
+    header.pageHead{flex-direction:column; align-items:stretch; gap:10px;}
+    header.pageHead h1{font-size:17px;}
+    .headControls{width:100%; flex-direction:column; gap:8px;}
+    .headControls select, .headControls input[type="text"]{width:100%; padding:10px 11px; font-size:14px;}
+
+    .kpiGrid{grid-template-columns:repeat(2,1fr);}
+    .grid2{grid-template-columns:1fr;}
+
+    .filterRow{flex-direction:column; align-items:stretch; padding:12px 14px;}
+    .filterRow select{width:100%; padding:9px 10px; font-size:13.5px;}
+    .filterRow .resetLink{align-self:flex-end;}
+
+    .tableFoot{flex-direction:column; align-items:stretch; gap:10px;}
+    .tableFoot span[style]{display:flex; gap:8px;}
+    .tableFoot .btn{flex:1;}
+    table{font-size:12px;}
+    thead th, tbody td{padding:8px 8px;}
+    input[type="checkbox"]{width:18px; height:18px;}
+    thead th{padding:10px 8px;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">E!</div>
+      <div class="txt">Site performance<small>Certification &amp; retention</small></div>
+    </div>
+    <nav class="navlist">
+      <button data-view="overview" class="active"><i class="ti ti-layout-dashboard"></i>Overview</button>
+      <button data-view="sites"><i class="ti ti-map-pin"></i>Sites</button>
+      <button data-view="certificates"><i class="ti ti-certificate"></i>Certificates</button>
+      <button data-view="retention"><i class="ti ti-trending-up"></i>Retention</button>
+    </nav>
+    <div class="sidebarFoot">Data loads live from your Extract 2 sheet.</div>
+  </aside>
+
+  <main class="content">
+    <header class="pageHead">
+      <div>
+        <h1 id="pageTitle">Overview</h1>
+        <p id="pageSub">All sites, all classes, everyone in the sheet.</p>
+      </div>
+      <div class="headControls">
+        <select id="siteSelect"><option value="">All sites</option></select>
+        <input type="text" id="globalSearch" placeholder="Search name or youth ID">
+      </div>
+    </header>
+
+    <div class="statusBanner loading" id="statusBanner"><i class="ti ti-loader-2"></i><span>Loading data from your sheet…</span></div>
+
+    <section class="view active" id="view-overview">
+      <div class="kpiGrid" id="kpiGrid"></div>
+      <div class="grid2">
+        <div class="panel"><h3 id="certChartTitle">Certificates ready, by venue</h3><div id="certChart"></div></div>
+        <div class="panel"><h3>Certification status breakdown</h3><div id="statusChart"></div></div>
+      </div>
+      <div class="panel">
+        <h3>Districts at a glance<span class="sub">Youth count and certificate-ready share per district</span></h3>
+        <div id="districtChart"></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-sites">
+      <div class="tableWrap">
+        <div class="tableScroll">
+          <table id="sitesTable">
+            <thead><tr id="sitesHead"></tr></thead>
+            <tbody id="sitesBody"></tbody>
+          </table>
+        </div>
+        <div class="tableFoot"><span id="sitesCount"></span><span>Click a site to open its certificate list</span></div>
+      </div>
+    </section>
+
+    <section class="view" id="view-certificates">
+      <div class="tableWrap">
+        <div class="filterRow">
+          <select id="fDistrict"><option value="">All districts</option></select>
+          <select id="fClass"><option value="">All classes</option></select>
+          <select id="fGender"><option value="">All genders</option></select>
+          <select id="fCert"><option value="">All certification statuses</option></select>
+          <select id="fRetention"><option value="">All retention statuses</option></select>
+          <select id="fActive"><option value="">All active statuses</option></select>
+          <span class="resetLink" id="resetFilters">Reset filters</span>
+        </div>
+        <div class="tableScroll">
+          <table id="certTable">
+            <thead><tr id="certHead"></tr></thead>
+            <tbody id="certBody"></tbody>
+          </table>
+        </div>
+        <div class="tableFoot">
+          <span><b id="selCount">0</b> selected · <b id="visCount">0</b> shown</span>
+          <span style="display:flex; gap:8px;">
+            <button class="btn" id="btnExport" type="button">Download CSV</button>
+            <button class="btn primary" id="btnPrint" type="button">Print certificate list</button>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-retention">
+      <div class="grid2">
+        <div class="panel"><h3>Retention status breakdown</h3><div id="retentionStatusChart"></div></div>
+        <div class="panel"><h3>Retention rate, by venue<span class="sub">Lowest rate first — where to focus first</span></h3><div id="retentionByVenueChart"></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="printSheet">
+  <h2 id="printTitle">Certificate list</h2>
+  <table>
+    <thead><tr><th>Youth name</th><th>Youth ID</th><th>Class</th><th>Venue</th></tr></thead>
+    <tbody id="printBody"></tbody>
+  </table>
+</div>
+
+<script>
+const JSON_URL = 'https://script.google.com/macros/s/AKfycbyN8ZC3nGlBT4EpX93vjzbCP5dH8-b8oAl6Rf0J42u5XQxak5zuUFkotq1quJpLNekLwg/exec';
+
+let RAW = [];
+let selected = new Set();
+let certSort = {key:'youth_name', dir:1};
+let sitesSort = {key:'youth_count', dir:-1};
+
+function properCase(name){
+  if(!name) return '';
+  return String(name).trim().toLowerCase().replace(/(^|[\s'-])([a-z])/g, (m,p1,p2)=>p1+p2.toUpperCase());
+}
+function getClassLabel(className){
+  if(!className) return '';
+  const parts = String(className).split('—');
+  return parts.length > 1 ? parts[parts.length-1].trim() : String(className).trim();
+}
+function classify(statusRaw){
+  const s = (statusRaw||'').toLowerCase();
+  const positive = ['give certificate','retained','eligible','active','complete'];
+  const negative = ['do not','not eligible','not retained','ineligible','dropped','inactive','fail','no certificate'];
+  if(negative.some(k=>s.includes(k))) return 'red';
+  if(positive.some(k=>s.includes(k))) return 'green';
+  return 'grey';
+}
+function escapeHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function colorFor(cls){ return cls==='green' ? 'var(--green)' : cls==='red' ? 'var(--red)' : 'var(--grey)'; }
+
+async function loadData(){
+  const banner = document.getElementById('statusBanner');
+  try{
+    const res = await fetch(JSON_URL);
+    if(!res.ok) throw new Error('bad status');
+    const json = await res.json();
+    RAW = (Array.isArray(json) ? json : []).filter(r=>r.youth_id || r.youth_name).map(r=>{
+      const o = {};
+      Object.keys(r).forEach(k=>{ o[k.trim()] = (r[k]===undefined||r[k]===null)?'':String(r[k]).trim(); });
+      return o;
+    });
+    if(!RAW.length) throw new Error('empty');
+    banner.className = 'statusBanner hidden';
+    buildFilterOptions();
+    renderAll();
+  }catch(err){
+    banner.className = 'statusBanner error';
+    banner.innerHTML = '<i class="ti ti-alert-triangle"></i><span>Could not load data right now. Check the sheet connection and reload this page.</span>';
+  }
+}
+
+function uniqueSorted(arr){ return Array.from(new Set(arr.filter(v=>v!==undefined && v!==''))).sort(); }
+function fillSelect(id, values, firstLabel){
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  sel.innerHTML = '';
+  const opt0 = document.createElement('option'); opt0.value=''; opt0.textContent = firstLabel;
+  sel.appendChild(opt0);
+  values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  if(values.includes(current)) sel.value = current;
+}
+function buildFilterOptions(){
+  fillSelect('siteSelect', uniqueSorted(RAW.map(r=>r.venue_name)), 'All sites');
+  fillSelect('fDistrict', uniqueSorted(RAW.map(r=>r.district)), 'All districts');
+  fillSelect('fClass', uniqueSorted(RAW.map(r=>getClassLabel(r.className))), 'All classes');
+  fillSelect('fGender', uniqueSorted(RAW.map(r=>r.gender)), 'All genders');
+  fillSelect('fCert', uniqueSorted(RAW.map(r=>r.certification_status)), 'All certification statuses');
+  fillSelect('fRetention', uniqueSorted(RAW.map(r=>r.retention_status)), 'All retention statuses');
+  fillSelect('fActive', uniqueSorted(RAW.map(r=>r.active)), 'All active statuses');
+}
+
+function baseRows(){
+  const site = document.getElementById('siteSelect').value;
+  const search = document.getElementById('globalSearch').value.trim().toLowerCase();
+  return RAW.filter(r=>{
+    if(site && r.venue_name !== site) return false;
+    if(search){
+      const hay = (properCase(r.youth_name)+' '+r.youth_id).toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+}
+
+function certFilteredRows(){
+  const district = document.getElementById('fDistrict').value;
+  const cls = document.getElementById('fClass').value;
+  const gender = document.getElementById('fGender').value;
+  const cert = document.getElementById('fCert').value;
+  const retention = document.getElementById('fRetention').value;
+  const active = document.getElementById('fActive').value;
+  let rows = baseRows().filter(r=>{
+    if(district && r.district !== district) return false;
+    if(cls && getClassLabel(r.className) !== cls) return false;
+    if(gender && r.gender !== gender) return false;
+    if(cert && r.certification_status !== cert) return false;
+    if(retention && r.retention_status !== retention) return false;
+    if(active && r.active !== active) return false;
+    return true;
+  });
+  const {key,dir} = certSort;
+  rows = rows.slice().sort((a,b)=>{
+    let av = key==='youth_name' ? properCase(a.youth_name) : (key==='className' ? getClassLabel(a.className) : a[key]);
+    let bv = key==='youth_name' ? properCase(b.youth_name) : (key==='className' ? getClassLabel(b.className) : b[key]);
+    const an=parseFloat(av), bn=parseFloat(bv);
+    if(!isNaN(an) && !isNaN(bn)) return (an-bn)*dir;
+    return String(av||'').localeCompare(String(bv||''))*dir;
+  });
+  return rows;
+}
+
+function aggregateBySite(rows){
+  const map = {};
+  rows.forEach(r=>{
+    const key = r.venue_name || 'Unknown';
+    if(!map[key]) map[key] = {venue_name:key, district:r.district, youth_count:0, ready:0, retained:0, active:0};
+    const m = map[key];
+    m.youth_count++;
+    if(classify(r.certification_status)==='green') m.ready++;
+    if((r.retention_status||'').toLowerCase().includes('retain')) m.retained++;
+    if((r.active||'').toUpperCase()==='ACTIVE') m.active++;
+  });
+  return Object.values(map).map(m=>({
+    ...m,
+    ready_pct: m.youth_count ? Math.round(m.ready/m.youth_count*100) : 0,
+    retention_pct: m.youth_count ? Math.round(m.retained/m.youth_count*100) : 0,
+    active_pct: m.youth_count ? Math.round(m.active/m.youth_count*100) : 0
+  }));
+}
+
+function renderKPIs(rows){
+  const total = rows.length;
+  const ready = rows.filter(r=>classify(r.certification_status)==='green').length;
+  const retained = rows.filter(r=>(r.retention_status||'').toLowerCase().includes('retain')).length;
+  const active = rows.filter(r=>(r.active||'').toUpperCase()==='ACTIVE').length;
+  const pct = n => total ? Math.round(n/total*100) : 0;
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi"><div class="num">${total}</div><div class="lbl">Youth in view</div></div>
+    <div class="kpi green"><div class="num">${ready}</div><div class="lbl">Ready for certificate (${pct(ready)}%)</div></div>
+    <div class="kpi yellow"><div class="num">${pct(retained)}%</div><div class="lbl">Retention rate</div></div>
+    <div class="kpi grey"><div class="num">${pct(active)}%</div><div class="lbl">Active rate</div></div>`;
+}
+
+function renderCertChart(rows){
+  const site = document.getElementById('siteSelect').value;
+  document.getElementById('certChartTitle').textContent = site ? 'Certificates ready, by class' : 'Certificates ready, by venue';
+  const counts = {};
+  rows.forEach(r=>{
+    if(classify(r.certification_status)!=='green') return;
+    const k = site ? (getClassLabel(r.className)||'Unknown') : (r.venue_name||'Unknown');
+    counts[k] = (counts[k]||0)+1;
+  });
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const max = entries.length ? entries[0][1] : 1;
+  const el = document.getElementById('certChart');
+  el.innerHTML = entries.length ? entries.map(([name,count])=>{
+    const w = Math.max(4, Math.round(count/max*100));
+    return `<div class="barRow"><div class="name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+      <div class="barTrack"><div class="barFill" style="width:${w}%; background:var(--yellow);"></div></div>
+      <div class="count">${count}</div></div>`;
+  }).join('') : '<div class="empty">No certificate-ready records in this view.</div>';
+}
+
+function renderStatusChart(rows, targetId, statusKey, emptyMsg){
+  const counts = {};
+  rows.forEach(r=>{
+    const k = r[statusKey] || 'Unknown';
+    counts[k] = (counts[k]||0)+1;
+  });
+  const total = rows.length || 1;
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const el = document.getElementById(targetId);
+  el.innerHTML = entries.length ? entries.map(([name,count])=>{
+    const cls = classify(name);
+    const pct = Math.round(count/total*100);
+    return `<div class="statusRow"><span class="dot" style="background:${colorFor(cls)}"></span>
+      <span class="name">${escapeHtml(name)}</span><span class="pct">${count} · ${pct}%</span></div>`;
+  }).join('') : `<div class="empty">${emptyMsg}</div>`;
+}
+
+function renderDistrictChart(rows){
+  const map = {};
+  rows.forEach(r=>{
+    const k = r.district || 'Unknown';
+    if(!map[k]) map[k] = {total:0, ready:0};
+    map[k].total++;
+    if(classify(r.certification_status)==='green') map[k].ready++;
+  });
+  const entries = Object.entries(map).sort((a,b)=>b[1].total-a[1].total).slice(0,10);
+  const max = entries.length ? Math.max(...entries.map(e=>e[1].total)) : 1;
+  const el = document.getElementById('districtChart');
+  el.innerHTML = entries.length ? entries.map(([name,d])=>{
+    const w = Math.max(4, Math.round(d.total/max*100));
+    const readyPct = d.total ? Math.round(d.ready/d.total*100) : 0;
+    return `<div class="barRow"><div class="name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+      <div class="barTrack"><div class="barFill" style="width:${w}%; background:var(--blue);"></div></div>
+      <div class="count">${d.total}</div></div>
+      <div style="margin:-4px 0 8px 158px; font-size:11px; color:var(--grey);">${readyPct}% ready for certificate</div>`;
+  }).join('') : '<div class="empty">No data.</div>';
+}
+
+function renderRetentionByVenue(rows){
+  const agg = aggregateBySite(rows).filter(s=>s.youth_count>0).sort((a,b)=>a.retention_pct-b.retention_pct).slice(0,10);
+  const el = document.getElementById('retentionByVenueChart');
+  el.innerHTML = agg.length ? agg.map(s=>{
+    const color = s.retention_pct>=80 ? 'var(--green)' : s.retention_pct>=60 ? 'var(--yellow)' : 'var(--red)';
+    return `<div class="barRow"><div class="name" title="${escapeHtml(s.venue_name)}">${escapeHtml(s.venue_name)}</div>
+      <div class="barTrack"><div class="barFill" style="width:${Math.max(4,s.retention_pct)}%; background:${color};"></div></div>
+      <div class="count">${s.retention_pct}%</div></div>`;
+  }).join('') : '<div class="empty">No data.</div>';
+}
+
+function renderSitesTable(rows){
+  const agg = aggregateBySite(rows);
+  const cols = [
+    {key:'venue_name', label:'Venue'},
+    {key:'district', label:'District'},
+    {key:'youth_count', label:'Youth'},
+    {key:'ready', label:'Ready'},
+    {key:'ready_pct', label:'Ready %'},
+    {key:'retention_pct', label:'Retention %'},
+    {key:'active_pct', label:'Active %'}
+  ];
+  const {key,dir} = sitesSort;
+  agg.sort((a,b)=>{
+    const an=parseFloat(a[key]), bn=parseFloat(b[key]);
+    if(!isNaN(an) && !isNaN(bn)) return (an-bn)*dir;
+    return String(a[key]||'').localeCompare(String(b[key]||''))*dir;
+  });
+  document.getElementById('sitesHead').innerHTML = cols.map(c=>{
+    const arrow = sitesSort.key===c.key ? (sitesSort.dir===1?'▲':'▼') : '';
+    return `<th data-key="${c.key}">${c.label}<span class="arrow">${arrow}</span></th>`;
+  }).join('');
+  document.querySelectorAll('#sitesHead th').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const k = th.getAttribute('data-key');
+      if(sitesSort.key===k) sitesSort.dir*=-1; else sitesSort={key:k, dir:1};
+      renderAll();
+    });
+  });
+  const body = document.getElementById('sitesBody');
+  if(!agg.length){ body.innerHTML = '<tr><td colspan="7" class="empty">No sites match.</td></tr>'; document.getElementById('sitesCount').textContent=''; return; }
+  body.innerHTML = agg.map(s=>{
+    const riskColor = s.retention_pct>=80 ? 'var(--green)' : s.retention_pct>=60 ? 'var(--yellow)' : 'var(--red)';
+    return `<tr data-site="${escapeHtml(s.venue_name)}">
+      <td><span class="riskDot" style="background:${riskColor}"></span>${escapeHtml(s.venue_name)}</td>
+      <td>${escapeHtml(s.district)}</td>
+      <td>${s.youth_count}</td>
+      <td>${s.ready}</td>
+      <td>${s.ready_pct}%</td>
+      <td>${s.retention_pct}%</td>
+      <td>${s.active_pct}%</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('sitesCount').textContent = agg.length + ' sites';
+  document.querySelectorAll('#sitesBody tr').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      document.getElementById('siteSelect').value = tr.getAttribute('data-site');
+      setView('certificates');
+      renderAll();
+    });
+  });
+}
+
+const CERT_COLS = [
+  {key:'youth_name', label:'Youth name'},
+  {key:'youth_id', label:'Youth ID'},
+  {key:'gender', label:'Gender'},
+  {key:'venue_name', label:'Venue'},
+  {key:'className', label:'Class'},
+  {key:'district', label:'District'},
+  {key:'total_lessons_youth', label:'Lessons'},
+  {key:'retention_status', label:'Retention'},
+  {key:'certification_status', label:'Certification'},
+  {key:'active', label:'Active'}
+];
+
+function renderCertTable(rows){
+  document.getElementById('certHead').innerHTML = '<th class="chk">' +
+    '<input type="checkbox" id="selectAll"></th>' +
+    CERT_COLS.map(c=>{
+      const arrow = certSort.key===c.key ? (certSort.dir===1?'▲':'▼') : '';
+      return `<th data-key="${c.key}">${c.label}<span class="arrow">${arrow}</span></th>`;
+    }).join('');
+  document.querySelectorAll('#certHead th[data-key]').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const k = th.getAttribute('data-key');
+      if(certSort.key===k) certSort.dir*=-1; else certSort={key:k, dir:1};
+      renderAll();
+    });
+  });
+  document.getElementById('selectAll').addEventListener('change', function(e){
+    rows.forEach(r=>{ if(e.target.checked) selected.add(r.youth_id); else selected.delete(r.youth_id); });
+    renderAll();
+  });
+
+  const body = document.getElementById('certBody');
+  if(!rows.length){ body.innerHTML = `<tr><td colspan="${CERT_COLS.length+1}" class="empty">No records match these filters.</td></tr>`; }
+  else{
+    body.innerHTML = rows.map(r=>{
+      const cls = classify(r.certification_status);
+      const checked = selected.has(r.youth_id) ? 'checked' : '';
+      const cells = CERT_COLS.map(c=>{
+        let v = r[c.key] || '';
+        if(c.key==='youth_name') v = properCase(r.youth_name);
+        if(c.key==='className') v = getClassLabel(r.className);
+        if(c.key==='certification_status') return `<td><span class="pill ${cls}">${escapeHtml(v||'—')}</span></td>`;
+        return `<td>${escapeHtml(v)}</td>`;
+      }).join('');
+      return `<tr><td class="chk"><input type="checkbox" class="rowChk" data-id="${escapeHtml(r.youth_id)}" ${checked}></td>${cells}</tr>`;
+    }).join('');
+    body.querySelectorAll('.rowChk').forEach(chk=>{
+      chk.addEventListener('change', function(){
+        const id = this.getAttribute('data-id');
+        if(this.checked) selected.add(id); else selected.delete(id);
+        document.getElementById('selCount').textContent = selected.size;
+      });
+    });
+  }
+  document.getElementById('selCount').textContent = selected.size;
+  document.getElementById('visCount').textContent = rows.length;
+}
+
+function renderAll(){
+  const overviewRows = baseRows();
+  renderKPIs(overviewRows);
+  renderCertChart(overviewRows);
+  renderStatusChart(overviewRows, 'statusChart', 'certification_status', 'No data loaded.');
+  renderDistrictChart(overviewRows);
+  renderSitesTable(overviewRows);
+  const certRows = certFilteredRows();
+  renderCertTable(certRows);
+  renderStatusChart(overviewRows, 'retentionStatusChart', 'retention_status', 'No data loaded.');
+  renderRetentionByVenue(overviewRows);
+}
+
+function setView(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('nav.navlist button').forEach(b=>b.classList.toggle('active', b.getAttribute('data-view')===view));
+  const titles = {
+    overview:['Overview','All sites, all classes, everyone in the sheet.'],
+    sites:['Sites','Compare venues on readiness, retention, and activity.'],
+    certificates:['Certificates','Filter, select, export, and print certificate lists.'],
+    retention:['Retention','Where retention is strong, and where it needs attention.']
+  };
+  document.getElementById('pageTitle').textContent = titles[view][0];
+  document.getElementById('pageSub').textContent = titles[view][1];
+}
+
+document.querySelectorAll('nav.navlist button').forEach(btn=>{
+  btn.addEventListener('click', ()=>setView(btn.getAttribute('data-view')));
+});
+['siteSelect'].forEach(id=> document.getElementById(id).addEventListener('change', renderAll));
+document.getElementById('globalSearch').addEventListener('input', renderAll);
+['fDistrict','fClass','fGender','fCert','fRetention','fActive'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderAll);
+});
+document.getElementById('resetFilters').addEventListener('click', ()=>{
+  ['fDistrict','fClass','fGender','fCert','fRetention','fActive'].forEach(id=>{ document.getElementById(id).value=''; });
+  renderAll();
+});
+
+function rowsForAction(){
+  const filtered = certFilteredRows();
+  if(selected.size) return filtered.filter(r=>selected.has(r.youth_id));
+  return filtered;
+}
+document.getElementById('btnExport').addEventListener('click', function(){
+  const rows = rowsForAction();
+  const lines = [CERT_COLS.map(c=>c.label).join(',')].concat(rows.map(r=> CERT_COLS.map(({key:k})=>{
+    let v = k==='youth_name' ? properCase(r.youth_name) : (k==='className' ? getClassLabel(r.className) : (r[k]||''));
+    v = String(v).replace(/"/g,'""');
+    return v.includes(',') ? `"${v}"` : v;
+  }).join(',')));
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='certificate_list.csv'; a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('btnPrint').addEventListener('click', function(){
+  const rows = rowsForAction().filter(r=>classify(r.certification_status)==='green');
+  const site = document.getElementById('siteSelect').value;
+  document.getElementById('printTitle').textContent = 'Certificate list' + (site? ' — '+site : '');
+  document.getElementById('printBody').innerHTML = rows.map(r=>`<tr>
+    <td>${escapeHtml(properCase(r.youth_name))}</td><td>${escapeHtml(r.youth_id)}</td>
+    <td>${escapeHtml(getClassLabel(r.className))}</td><td>${escapeHtml(r.venue_name)}</td></tr>`).join('');
+  window.print();
+});
+
+loadData();
+</script>
+</body>
+</html>
