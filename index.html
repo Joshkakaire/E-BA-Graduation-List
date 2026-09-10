@@ -117,22 +117,15 @@
   #printSheet th,#printSheet td{border:1px solid #999; padding:6px 8px; text-align:left;}
 
   @media (max-width:760px){
-    .shell{flex-direction:column;}
-    aside.sidebar{
-      position:fixed; left:0; right:0; bottom:0; z-index:50; width:100%; flex-direction:row;
-      align-items:stretch; padding:6px 4px calc(6px + env(safe-area-inset-bottom));
-      border-top:1px solid #2A4A57; height:auto;
-    }
-    .brand{display:none;}
-    nav.navlist{flex-direction:row; flex:1; width:100%;}
-    nav.navlist button{
-      flex:1; flex-direction:column; gap:3px; font-size:10.5px; padding:8px 2px; text-align:center;
-      align-items:center; justify-content:center; border-radius:8px;
-    }
-    nav.navlist button i{font-size:20px; width:auto;}
+    .shell{flex-direction:row;}
+    aside.sidebar{width:60px; padding:14px 4px;}
+    .brand{justify-content:center; padding:4px 0 18px;}
+    .brand .txt{display:none;}
+    nav.navlist button{font-size:0; padding:12px 4px; justify-content:center;}
+    nav.navlist button i{font-size:20px;}
     .sidebarFoot{display:none;}
 
-    main.content{padding:16px 14px calc(78px + env(safe-area-inset-bottom));}
+    main.content{padding:16px 14px 40px;}
     header.pageHead{flex-direction:column; align-items:stretch; gap:10px;}
     header.pageHead h1{font-size:17px;}
     .headControls{width:100%; flex-direction:column; gap:8px;}
@@ -240,7 +233,7 @@
     <section class="view" id="view-retention">
       <div class="grid2">
         <div class="panel"><h3>Retention status breakdown</h3><div id="retentionStatusChart"></div></div>
-        <div class="panel"><h3>Retention rate, by venue<span class="sub">Lowest rate first — where to focus first</span></h3><div id="retentionByVenueChart"></div></div>
+        <div class="panel"><h3>Retention rate, by venue<span class="sub">Highest rate first</span></h3><div id="retentionByVenueChart"></div></div>
       </div>
     </section>
   </main>
@@ -454,7 +447,7 @@ function renderDistrictChart(rows){
 }
 
 function renderRetentionByVenue(rows){
-  const agg = aggregateBySite(rows).filter(s=>s.youth_count>0).sort((a,b)=>a.retention_pct-b.retention_pct).slice(0,10);
+  const agg = aggregateBySite(rows).filter(s=>s.youth_count>0).sort((a,b)=>b.retention_pct-a.retention_pct).slice(0,10);
   const el = document.getElementById('retentionByVenueChart');
   el.innerHTML = agg.length ? agg.map(s=>{
     const color = s.retention_pct>=80 ? 'var(--green)' : s.retention_pct>=60 ? 'var(--yellow)' : 'var(--red)';
